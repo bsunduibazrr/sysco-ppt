@@ -26,10 +26,10 @@ const hand = Caveat({
 
 export const metadata: Metadata = {
   title: "sys&cotech клуб | Танилцуулга",
-  description: "Идэвхгүй гишүүдэд зориулсан sys&cotech клубийн танилцуулга",
+  description: "syscoppt",
   openGraph: {
-    title: "sys&cotech клуб",
-    description: "Идэвхгүй гишүүдэд зориулсан танилцуулга",
+    title: "sys&cotech ",
+    description: "syscoppt",
     type: "website",
     locale: "mn_MN",
   },
