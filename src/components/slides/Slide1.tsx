@@ -8,7 +8,7 @@ import WebStrands from "../WebStrands";
 import WebCorner from "../WebCorner";
 import { scrollToSlide } from "../Navbar";
 
-const word = "SYSCOTECH".split("");
+const word = "SYS&CO TECH".split("");
 
 export default function Slide1() {
   const mx = useMotionValue(0);
@@ -32,7 +32,12 @@ export default function Slide1() {
   }, [mx, my]);
 
   return (
-    <section id="slide-1" data-theme="dark" aria-label="Нүүр слайд" className="relative flex min-h-[100svh] snap-start items-center overflow-hidden bg-ink">
+    <section
+      id="slide-1"
+      data-theme="dark"
+      aria-label="Нүүр слайд"
+      className="relative flex min-h-[100svh] snap-start items-center overflow-hidden bg-ink"
+    >
       <WebStrands className="text-paper/[0.07]" />
       <div className="halftone halftone-fade pointer-events-none absolute -left-10 bottom-0 h-[60%] w-[55%] rotate-180 text-blood/70" />
       <WebCorner corner="tr" size={260} className="text-paper/15" />
@@ -59,7 +64,7 @@ export default function Slide1() {
           <motion.h1
             style={{ x: titleX, y: titleY }}
             className="font-display text-[clamp(4.2rem,15vw,14rem)] font-bold uppercase leading-[0.8] tracking-[-0.01em] text-paper"
-            aria-label="Syscotech клуб"
+            aria-label="Sys&co tech клуб"
           >
             <span aria-hidden className="flex overflow-hidden pb-2">
               {word.map((l, i) => (
@@ -68,7 +73,11 @@ export default function Slide1() {
                   className={i >= 4 && i <= 5 ? "text-spidey" : undefined}
                   initial={{ y: "105%" }}
                   animate={{ y: "0%" }}
-                  transition={{ delay: 0.3 + i * 0.05, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{
+                    delay: 0.3 + i * 0.05,
+                    duration: 0.9,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
                 >
                   {l}
                 </motion.span>
@@ -81,24 +90,18 @@ export default function Slide1() {
             style={{ x: stickerX, y: stickerY }}
             initial={{ scale: 0, rotate: -40 }}
             animate={{ scale: 1, rotate: -7 }}
-            transition={{ delay: 1, type: "spring", stiffness: 220, damping: 12 }}
+            transition={{
+              delay: 1,
+              type: "spring",
+              stiffness: 220,
+              damping: 12,
+            }}
             whileHover={{ scale: 1.12, rotate: 3 }}
             className="absolute -bottom-6 right-[-4%] border-[3px] border-ink bg-spidey px-4 py-1 font-display text-[clamp(1.8rem,4.6vw,4.2rem)] font-bold uppercase leading-none text-paper shadow-[5px_5px_0_0_#F4F1EC] md:-bottom-8"
           >
             клуб
           </motion.div>
         </div>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1, duration: 0.7 }}
-          className="mt-12 max-w-md font-body text-lg font-semibold leading-snug text-paper/85 md:mt-16 md:text-2xl"
-        >
-          Идэвхгүй гишүүдэд зориулсан
-          <br />
-          <span className="text-paper">танилцуулга</span>
-        </motion.p>
 
         <motion.div
           style={{ x: panelX }}
@@ -111,16 +114,27 @@ export default function Slide1() {
             whileHover={{ scale: 1.04, rotate: -1 }}
             className="relative grid gap-2 border-[3px] border-ink bg-paper px-5 py-4 font-body text-ink shadow-comic-red"
           >
-            <span aria-hidden className="absolute -left-2 -top-2 h-4 w-4 bg-suit" />
+            <span
+              aria-hidden
+              className="absolute -left-2 -top-2 h-4 w-4 bg-suit"
+            />
             <div className="flex items-center gap-3">
               <UserRound className="h-4 w-4 text-spidey" strokeWidth={2.5} />
-              <dt className="text-xs font-bold uppercase tracking-widest text-ink/60">Нэр</dt>
-              <dd className="font-display text-xl font-semibold uppercase">[НЭРЭЭ БИЧ]</dd>
+              <dt className="text-xs font-bold uppercase tracking-widest text-ink/60">
+                Нэр
+              </dt>
+              <dd className="font-display text-xl font-semibold uppercase">
+                Б.Сундуйбазар
+              </dd>
             </div>
             <div className="flex items-center gap-3">
               <Bookmark className="h-4 w-4 text-spidey" strokeWidth={2.5} />
-              <dt className="text-xs font-bold uppercase tracking-widest text-ink/60">Гарчиг</dt>
-              <dd className="font-display text-xl font-semibold uppercase">[ГАРЧИГ]</dd>
+              <dt className="text-xs font-bold uppercase tracking-widest text-ink/60">
+                Гарчиг
+              </dt>
+              <dd className="font-display text-xl font-semibold uppercase">
+                2/7 хоногийн дүгнэлт
+              </dd>
             </div>
           </motion.dl>
         </motion.div>
@@ -142,10 +156,12 @@ export default function Slide1() {
         >
           <ArrowDown className="h-4 w-4" />
         </motion.span>
-        Доош гүйлгэ
       </motion.button>
 
-      <div aria-hidden className="absolute bottom-6 right-6 z-10 hidden font-display text-sm tracking-[0.3em] text-paper/40 md:block lg:right-20">
+      <div
+        aria-hidden
+        className="absolute bottom-6 right-6 z-10 hidden font-display text-sm tracking-[0.3em] text-paper/40 md:block lg:right-20"
+      >
         01 / 07
       </div>
     </section>
