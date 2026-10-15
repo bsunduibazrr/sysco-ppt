@@ -25,7 +25,7 @@ const hand = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "sys&cotech клуб | Танилцуулга",
+  title: "syscoppt",
   description: "syscoppt",
   openGraph: {
     title: "sys&cotech ",
