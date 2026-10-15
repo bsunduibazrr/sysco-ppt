@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { slides } from "@/lib/content";
-import SpiderGlyph from "./SpiderGlyph";
+import SyscoLogo from "./SyscoLogo";
 
 export function scrollToSlide(id: string) {
   const el = document.getElementById(id);
@@ -17,7 +17,9 @@ export default function Navbar() {
   const [theme, setTheme] = useState("dark");
 
   useEffect(() => {
-    const els = slides.map((s) => document.getElementById(s.id)).filter(Boolean) as HTMLElement[];
+    const els = slides
+      .map((s) => document.getElementById(s.id))
+      .filter(Boolean) as HTMLElement[];
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -29,7 +31,7 @@ export default function Navbar() {
           }
         }
       },
-      { rootMargin: "-48% 0px -48% 0px" }
+      { rootMargin: "-48% 0px -48% 0px" },
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
@@ -40,21 +42,34 @@ export default function Navbar() {
   const dot = theme === "red" ? "bg-ink" : "bg-spidey";
 
   return (
-    <header className={`fixed inset-x-0 top-0 z-50 transition-colors duration-500 ${tone}`}>
-      <nav aria-label="Слайдын цэс" className="mx-auto flex items-center justify-between px-5 py-4 md:px-10 md:py-6">
+    <header
+      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-500 ${tone}`}
+    >
+      <nav
+        aria-label="Слайдын цэс"
+        className="mx-auto flex items-center justify-between px-5 py-4 md:px-10 md:py-6"
+      >
         <button
           type="button"
           onClick={() => scrollToSlide(slides[0].id)}
           className="group flex items-center gap-2"
-          aria-label="Syscotech, эхний слайд руу"
+          aria-label="sys&cotech, эхний слайд руу"
         >
-          <SpiderGlyph className={`h-6 w-6 transition-transform ${accent} duration-300 group-hover:rotate-12 group-hover:scale-110`} />
-          <span className="font-display text-xl font-bold uppercase tracking-[0.08em]">
-            Sys<span className={`transition-colors duration-500 ${accent}`}>co</span>tech
+          <SyscoLogo
+            priority
+            sizes="36px"
+            className="h-8 w-8 ring-1 ring-paper/20 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110 md:h-9 md:w-9"
+          />
+          <span className="whitespace-nowrap font-display text-lg font-bold uppercase tracking-[0.06em] md:text-xl md:tracking-[0.08em]">
+            Sys
+            <span className={`transition-colors duration-500 ${accent}`}>
+              &amp;co
+            </span>{" "}
+            tech
           </span>
         </button>
 
-        <ol className="flex items-center gap-2.5 md:gap-3.5">
+        <ol className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3.5">
           {slides.map((s, i) => (
             <li key={s.id}>
               <button
@@ -66,7 +81,11 @@ export default function Navbar() {
               >
                 <span className="absolute inset-0 rounded-full border border-current opacity-0 transition-all duration-300 group-hover:scale-110 group-hover:opacity-50" />
                 {active === i ? (
-                  <motion.span layoutId="nav-dot" className={`h-2.5 w-2.5 rotate-45 ${dot}`} transition={{ type: "spring", stiffness: 380, damping: 30 }} />
+                  <motion.span
+                    layoutId="nav-dot"
+                    className={`h-2.5 w-2.5 rotate-45 ${dot}`}
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
                 ) : (
                   <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60 transition-transform duration-300 group-hover:scale-150" />
                 )}

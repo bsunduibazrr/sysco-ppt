@@ -43,7 +43,7 @@ export const projects = [
   {
     title: "Story",
     text: "24 цагийн хугацаатай story хийх project",
-    href: "https://story-1.vercel.app",
+    href: "https://story-1-five.vercel.app",
   },
   {
     title: "Temperature",
@@ -53,7 +53,7 @@ export const projects = [
 ] as const;
 
 export const thoughts = [
-  "Маш гоё, өөрийн гэсэн амьсгалтай клуб.",
-  "Яг л гэр бүл шиг найрсаг хамт олон.",
-  "Их сургуульд ороод өөрийгөө нээсэн газар минь.",
+  "Маш гоё уур амьсгалтай, өөрийн гэсэн өнгө төрхтэй клуб.",
+  "Энэ клубийн нэгээхэн puzzle нь болмоор байна.",
+  "Яг л их сургуульд орж ирээд өөрөөсөө нэхэж байсан хамт олон.",
 ] as const;

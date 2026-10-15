@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Navbar from "@/components/Navbar";
 import Cursor from "@/components/Cursor";
 import WebProgress from "@/components/WebProgress";
@@ -9,6 +10,8 @@ import Slide5 from "@/components/slides/Slide5";
 import Slide6 from "@/components/slides/Slide6";
 import Slide7 from "@/components/slides/Slide7";
 
+const deck = [Slide1, Slide2, Slide3, Slide4, Slide5, Slide6, Slide7];
+
 export default function Page() {
   return (
     <>
@@ -16,13 +19,12 @@ export default function Page() {
       <WebProgress />
       <Cursor />
       <main>
-        <Slide1 />
-        <Slide2 />
-        <Slide3 />
-        <Slide4 />
-        <Slide5 />
-        <Slide6 />
-        <Slide7 />
+        {deck.map((Slide, i) => (
+          <Fragment key={i}>
+            <Slide />
+            <div aria-hidden className="h-0 snap-end" />
+          </Fragment>
+        ))}
       </main>
       <div aria-hidden className="grain pointer-events-none fixed inset-0 z-[90] opacity-[0.07] mix-blend-overlay" />
     </>

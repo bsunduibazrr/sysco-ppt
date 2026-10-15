@@ -20,7 +20,7 @@ import SlideTag from "../SlideTag";
 
 const icons: LucideIcon[] = [Keyboard, UtensilsCrossed, Pencil, Fish];
 const tilt = [-2.5, 1.8, -1.2, 2.4];
-const offset = ["lg:mt-0", "lg:mt-24", "lg:mt-8", "lg:mt-32"];
+const offset = ["lg:mt-0", "lg:mt-14", "lg:mt-4", "lg:mt-20"];
 
 export default function Slide3() {
   const ref = useRef<HTMLElement>(null);
@@ -62,18 +62,18 @@ export default function Slide3() {
         04
       </motion.div>
 
-      <div className="relative w-full py-24 lg:py-20">
+      <div className="relative w-full py-24 lg:pb-8 lg:pt-20">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 md:flex-row md:items-end md:justify-between md:px-10 lg:px-16">
           <div>
             <Reveal>
               <SlideTag
                 no={3}
-                label="Багуудын өрсөлдөөн"
+                label="Багууд хоорондын өрсөлдөөн"
                 className="text-paper/80"
               />
             </Reveal>
             <Reveal delay={0.1}>
-              <h2 className="mt-5 font-display text-[clamp(3.5rem,9vw,8rem)] font-bold uppercase leading-[0.82] text-paper">
+              <h2 className="mt-5 font-display text-[clamp(3.5rem,7vw,6.5rem)] font-bold uppercase leading-[0.82] text-paper">
                 <span className="text-spidey [text-shadow:4px_4px_0_#0A0A0C]">
                   4
                 </span>{" "}
@@ -83,7 +83,7 @@ export default function Slide3() {
           </div>
         </div>
 
-        <ul className="no-scrollbar mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-10 pt-4 md:px-10 lg:mx-auto lg:grid lg:max-w-[1400px] lg:grid-cols-4 lg:gap-7 lg:overflow-visible lg:px-16">
+        <ul className="no-scrollbar mt-12 flex lg:mt-4 snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-10 pt-4 md:px-10 lg:mx-auto lg:grid lg:max-w-[1400px] lg:grid-cols-4 lg:gap-7 lg:overflow-visible lg:px-16">
           {games.map((g, i) => {
             const Icon = icons[i];
             return (
@@ -102,7 +102,7 @@ export default function Slide3() {
                           src={g.image}
                           alt={g.alt}
                           sizes="(min-width: 1024px) 22vw, (min-width: 640px) 46vw, 78vw object-cover"
-                          className="aspect-[4/3] w-full"
+                          className="aspect-[4/3] w-full lg:aspect-[16/10]"
                           imgClassName="group-hover:scale-110"
                           tone={i % 2 ? "ink" : "red"}
                         />
