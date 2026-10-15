@@ -1,6 +1,13 @@
 "use client";
 
-import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import { Figma, LayoutGrid, Mail } from "lucide-react";
 import { useState, type PointerEvent } from "react";
 import SmartImage from "../SmartImage";
@@ -9,14 +16,26 @@ import SlideTag from "../SlideTag";
 import WebCorner from "../WebCorner";
 
 const tabs = [
-  { key: "works", label: "Хийсэн ажлууд", icon: LayoutGrid, src: "/images/design-1.png", alt: "Portfolio-ийн хийсэн ажлууд хэсэг" },
-  { key: "contact", label: "Contact", icon: Mail, src: "/images/design-2.png", alt: "Portfolio-ийн холбоо барих хэсэг" },
+  {
+    key: "works",
+    label: "Хийсэн ажлууд",
+    icon: LayoutGrid,
+    src: "/images/tom.png",
+    alt: "Portfolio-ийн хийсэн ажлууд хэсэг",
+  },
+  {
+    key: "contact",
+    label: "Contact",
+    icon: Mail,
+    src: "/images/design-2.png",
+    alt: "Portfolio-ийн холбоо барих хэсэг",
+  },
 ] as const;
 
 const shots = [
-  { src: "/images/design-1.png", alt: "Portfolio дизайны нүүр хэсэг" },
-  { src: "/images/design-2.png", alt: "Portfolio дизайны холбоо барих хэсэг" },
-  { src: "/images/design-3.png", alt: "Portfolio дизайны гар утасны хувилбар" },
+  { src: "/images/pi.jpeg", alt: "Portfolio дизайны нүүр хэсэг" },
+  { src: "/images/figma.png", alt: "Portfolio дизайны холбоо барих хэсэг" },
+  { src: "/images/cla.jpeg", alt: "Portfolio дизайны гар утасны хувилбар" },
 ];
 
 export default function Slide4() {
@@ -38,8 +57,16 @@ export default function Slide4() {
   };
 
   return (
-    <section id="slide-4" data-theme="dark" aria-label="Дизайн таск" className="relative flex min-h-[100svh] snap-start items-center overflow-hidden bg-ink">
-      <div aria-hidden className="text-outline-paper pointer-events-none absolute -right-10 top-1/2 hidden -translate-y-1/2 select-none font-display text-[14vw] font-bold uppercase leading-none [writing-mode:vertical-rl] lg:block">
+    <section
+      id="slide-4"
+      data-theme="dark"
+      aria-label="Дизайн таск"
+      className="relative flex min-h-[100svh] snap-start items-center overflow-hidden bg-ink"
+    >
+      <div
+        aria-hidden
+        className="text-outline-paper pointer-events-none absolute -right-10 top-1/2 hidden -translate-y-1/2 select-none font-display text-[14vw] font-bold uppercase leading-none [writing-mode:vertical-rl] lg:block"
+      >
         portfolio
       </div>
       <WebCorner corner="tl" size={240} className="text-spidey/30" />
@@ -74,7 +101,11 @@ export default function Slide4() {
           </Reveal>
 
           <Reveal delay={0.3}>
-            <div role="tablist" aria-label="Portfolio хэсгүүд" className="mt-8 flex w-fit border-2 border-paper/80">
+            <div
+              role="tablist"
+              aria-label="Portfolio хэсгүүд"
+              className="mt-8 flex w-fit border-2 border-paper/80"
+            >
               {tabs.map((t) => {
                 const Icon = t.icon;
                 const on = t.key === tab;
@@ -87,7 +118,17 @@ export default function Slide4() {
                     onClick={() => setTab(t.key)}
                     className={`relative flex items-center gap-2 px-4 py-3 font-body text-sm font-bold transition-colors ${on ? "text-paper" : "text-paper/60 hover:text-paper"}`}
                   >
-                    {on && <motion.span layoutId="design-tab" className="absolute inset-0 bg-spidey" transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
+                    {on && (
+                      <motion.span
+                        layoutId="design-tab"
+                        className="absolute inset-0 bg-spidey"
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 32,
+                        }}
+                      />
+                    )}
                     <Icon className="relative h-4 w-4" />
                     <span className="relative">{t.label}</span>
                   </button>
@@ -100,8 +141,17 @@ export default function Slide4() {
             {shots.map((s, i) => (
               <li key={s.src} className="w-1/3">
                 <Reveal delay={0.35 + i * 0.08} rotate={i === 1 ? 2 : -2}>
-                  <motion.div whileHover={{ scale: 1.12, rotate: 0, zIndex: 10 }} className="group relative border-2 border-paper/70 shadow-[4px_4px_0_0_#E62429]">
-                    <SmartImage src={s.src} alt={s.alt} sizes="12vw" className="aspect-[4/3] w-full" imgClassName="group-hover:scale-125" />
+                  <motion.div
+                    whileHover={{ scale: 1.12, rotate: 0, zIndex: 10 }}
+                    className="group relative border-2 border-paper/70 shadow-[4px_4px_0_0_#E62429]"
+                  >
+                    <SmartImage
+                      src={s.src}
+                      alt={s.alt}
+                      sizes="12vw"
+                      className="aspect-[4/3] w-full"
+                      imgClassName="group-hover:scale-125"
+                    />
                   </motion.div>
                 </Reveal>
               </li>
@@ -109,12 +159,34 @@ export default function Slide4() {
           </ul>
         </div>
 
-        <div className="relative lg:col-span-8" onPointerMove={onMove} onPointerLeave={() => { px.set(0.5); py.set(0.5); }} style={{ perspective: 1600 }}>
+        <div
+          className="relative lg:col-span-8"
+          onPointerMove={onMove}
+          onPointerLeave={() => {
+            px.set(0.5);
+            py.set(0.5);
+          }}
+          style={{ perspective: 1600 }}
+        >
           <Reveal y={80} scale={0.92}>
-            <motion.div style={{ rotateY: reduce ? -12 : rotY, rotateX: reduce ? 6 : rotX, transformStyle: "preserve-3d" }} className="relative mx-auto w-[92%] lg:w-full">
+            <motion.div
+              style={{
+                rotateY: reduce ? -12 : rotY,
+                rotateX: reduce ? 6 : rotX,
+                transformStyle: "preserve-3d",
+              }}
+              className="relative mx-auto w-[92%] lg:w-full"
+            >
               <div className="relative rounded-t-2xl border-[10px] border-b-[14px] border-[#1c1c21] bg-[#1c1c21] shadow-[0_40px_80px_-20px_rgba(230,36,41,0.45)]">
-                <span aria-hidden className="absolute left-1/2 top-[-7px] h-1 w-1 -translate-x-1/2 rounded-full bg-paper/30" />
-                <div className="group relative aspect-[16/10] overflow-hidden rounded-sm bg-ink" role="tabpanel" aria-label={active.label}>
+                <span
+                  aria-hidden
+                  className="absolute left-1/2 top-[-7px] h-1 w-1 -translate-x-1/2 rounded-full bg-paper/30"
+                />
+                <div
+                  className="group relative aspect-[16/10] overflow-hidden rounded-sm bg-ink"
+                  role="tabpanel"
+                  aria-label={active.label}
+                >
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={active.key}
@@ -124,7 +196,13 @@ export default function Slide4() {
                       exit={{ opacity: 0, y: -30 }}
                       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
                     >
-                      <SmartImage src={active.src} alt={active.alt} sizes="(min-width: 1024px) 60vw, 92vw" className="h-full w-full" imgClassName="group-hover:scale-110" />
+                      <SmartImage
+                        src={active.src}
+                        alt={active.alt}
+                        sizes="(min-width: 1024px) 60vw, 92vw"
+                        className="h-full w-full"
+                        imgClassName="group-hover:scale-110"
+                      />
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -142,7 +220,14 @@ export default function Slide4() {
                   className="group relative rotate-[-8deg] rounded-[1.6rem] border-[6px] border-[#1c1c21] bg-[#1c1c21] shadow-[12px_12px_0_0_#E62429]"
                 >
                   <span className="absolute left-1/2 top-1 z-10 h-1.5 w-8 -translate-x-1/2 rounded-full bg-ink" />
-                  <SmartImage src="/images/design-3.png" alt="Portfolio-ийн гар утасны хувилбар" sizes="20vw" className="aspect-[9/19] w-full rounded-[1.1rem]" imgClassName="group-hover:scale-110" tone="red" />
+                  <SmartImage
+                    src="/images/ggg.png"
+                    alt="Portfolio-ийн гар утасны хувилбар"
+                    sizes="20vw"
+                    className="aspect-[9/19] w-full rounded-[1.1rem]"
+                    imgClassName="group-hover:scale-110"
+                    tone="red"
+                  />
                 </motion.div>
               </motion.div>
             </motion.div>
