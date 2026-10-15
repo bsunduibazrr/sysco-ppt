@@ -25,10 +25,10 @@ const hand = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "Syscotech клуб | Танилцуулга",
-  description: "Идэвхгүй гишүүдэд зориулсан Syscotech клубийн танилцуулга",
+  title: "sys&cotech клуб | Танилцуулга",
+  description: "Идэвхгүй гишүүдэд зориулсан sys&cotech клубийн танилцуулга",
   openGraph: {
-    title: "Syscotech клуб",
+    title: "sys&cotech клуб",
     description: "Идэвхгүй гишүүдэд зориулсан танилцуулга",
     type: "website",
     locale: "mn_MN",
@@ -41,9 +41,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="mn" className={`${display.variable} ${body.variable} ${hand.variable}`}>
+    <html
+      lang="mn"
+      className={`${display.variable} ${body.variable} ${hand.variable}`}
+    >
       <body className="font-body">
         <MotionConfig reducedMotion="user">{children}</MotionConfig>
       </body>

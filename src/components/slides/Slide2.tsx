@@ -60,7 +60,7 @@ export default function Slide2() {
           <Reveal>
             <SlideTag
               no={2}
-              label="DUA таскийн тайлан"
+              label="ДҮА таскийн тайлан"
               className="text-spidey"
             />
           </Reveal>
@@ -99,7 +99,7 @@ export default function Slide2() {
               <TiltCard max={5} scale={1.015}>
                 <div className="relative border-4 border-ink bg-ink shadow-comic-lg">
                   <SmartImage
-                    src="/images/slide2-team.jpg"
+                    src="/images/sysco.png"
                     alt="DUA таскийн багийн гишүүдийн хамтын зураг"
                     sizes="(min-width: 1024px) 55vw, 100vw"
                     className="aspect-[4/3] w-full"
@@ -149,11 +149,9 @@ export default function Slide2() {
                     className="relative h-7 w-7 text-spidey"
                     strokeWidth={2.2}
                   />
-                  <div className="relative mt-1 font-display text-[6rem] font-bold leading-[0.8] text-spidey md:text-[8rem]">
-                    4
-                  </div>
+                  <div className="relative mt-1 font-display text-[6rem] font-bold leading-[0.8] text-spidey md:text-[8rem]"></div>
                   <p className="relative mt-2 font-display text-xl font-semibold uppercase leading-tight md:text-2xl">
-                    хөгжүүлэлтийн
+                    4 хөгжөөнт
                     <br />
                     тоглоом
                   </p>

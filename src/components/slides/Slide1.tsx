@@ -8,7 +8,7 @@ import WebStrands from "../WebStrands";
 import WebCorner from "../WebCorner";
 import { scrollToSlide } from "../Navbar";
 
-const word = "SYS&CO TECH".split("");
+const word = "sys&cotech".split("");
 
 export default function Slide1() {
   const mx = useMotionValue(0);
@@ -55,22 +55,25 @@ export default function Slide1() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-        >
-          <span className="h-px w-10 bg-spidey" />
-          Их сургуулийн клуб
-        </motion.p>
+        ></motion.p>
 
         <div className="relative inline-block">
           <motion.h1
             style={{ x: titleX, y: titleY }}
             className="font-display text-[clamp(4.2rem,15vw,14rem)] font-bold uppercase leading-[0.8] tracking-[-0.01em] text-paper"
-            aria-label="Sys&co tech клуб"
+            aria-label="sys&cotech клуб"
           >
             <span aria-hidden className="flex overflow-hidden pb-2">
               {word.map((l, i) => (
                 <motion.span
                   key={i}
-                  className={i >= 4 && i <= 5 ? "text-spidey" : undefined}
+                  className={
+                    l === " "
+                      ? "w-[0.22em]"
+                      : i >= 4 && i <= 5
+                        ? "text-spidey"
+                        : undefined
+                  }
                   initial={{ y: "105%" }}
                   animate={{ y: "0%" }}
                   transition={{
@@ -120,18 +123,14 @@ export default function Slide1() {
             />
             <div className="flex items-center gap-3">
               <UserRound className="h-4 w-4 text-spidey" strokeWidth={2.5} />
-              <dt className="text-xs font-bold uppercase tracking-widest text-ink/60">
-                Нэр
-              </dt>
+
               <dd className="font-display text-xl font-semibold uppercase">
                 Б.Сундуйбазар
               </dd>
             </div>
             <div className="flex items-center gap-3">
               <Bookmark className="h-4 w-4 text-spidey" strokeWidth={2.5} />
-              <dt className="text-xs font-bold uppercase tracking-widest text-ink/60">
-                Гарчиг
-              </dt>
+
               <dd className="font-display text-xl font-semibold uppercase">
                 2/7 хоногийн дүгнэлт
               </dd>
