@@ -2,74 +2,429 @@
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Float } from "@react-three/drei";
 import * as THREE from "three";
 
-function webGeometry() {
-  const pts: number[] = [];
-  const r = 1.75;
-  const lat = 10;
-  const lon = 16;
-  const at = (i: number, j: number, k = 1) => {
-    const phi = (i / lat) * Math.PI;
-    const th = (j / lon) * Math.PI * 2;
-    return [r * k * Math.sin(phi) * Math.cos(th), r * k * Math.cos(phi), r * k * Math.sin(phi) * Math.sin(th)];
+type Pointer = { nx: number; ny: number; cx: number; cy: number; at: number };
+type Bead = { x: number; y: number; w: number; s: number };
+
+const HUB = new THREE.Vector2(0.12, 0.3);
+const SPOKES = 28;
+
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  for (let j = 0; j < lon; j++) {
-    for (let i = 0; i < lat; i++) pts.push(...at(i, j), ...at(i + 1, j));
-  }
-  for (let i = 1; i < lat; i++) {
-    for (let j = 0; j < lon; j++) {
-      const a = at(i, j);
-      const b = at(i, j + 1);
-      const m = at(i, j + 0.5, 0.94);
-      pts.push(...a, ...m, ...m, ...b);
-    }
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-  return g;
 }
 
-function WebSphere({ pointer }: { pointer: MutableRefObject<[number, number]> }) {
-  const group = useRef<THREE.Group>(null);
-  const geo = useMemo(webGeometry, []);
+// Kept in sync with the vertex shader below.
+function sway(x: number, y: number, w: number, t: number) {
+  return w * (0.16 * Math.sin(t * 0.6 + x * 0.9 + y * 0.4) + 0.05 * Math.sin(t * 1.3 + y * 2.1));
+}
 
-  useFrame((_, dt) => {
-    const g = group.current;
+function poke(x: number, y: number, w: number, p: THREE.Vector3) {
+  const dx = x - p.x;
+  const dy = y - p.y;
+  return -p.z * Math.exp(-(dx * dx + dy * dy) / 0.35) * Math.min(1, w * 3);
+}
+
+const weight = (f: number) => 1 - f * f;
+
+function buildWeb() {
+  const rnd = mulberry32(11);
+  const pos: number[] = [];
+  const ws: number[] = [];
+  const as: number[] = [];
+  const beads: Bead[] = [];
+  const seg = (x0: number, y0: number, w0: number, a0: number, x1: number, y1: number, w1: number, a1: number) => {
+    pos.push(x0, y0, 0, x1, y1, 0);
+    ws.push(w0, w1);
+    as.push(a0, a1);
+  };
+
+  // Frame: an uneven polygon, roomier below the hub like a real orb web.
+  const anchors: [number, number][] = [];
+  for (let i = 0; i < 6; i++) {
+    const ang = 0.35 + (i * Math.PI * 2) / 6 + (rnd() - 0.5) * 0.45;
+    const r = (1.75 + rnd() * 0.4) * (Math.sin(ang) < 0 ? 1.12 : 0.9);
+    anchors.push([HUB.x + Math.cos(ang) * r, HUB.y + Math.sin(ang) * r]);
+  }
+  anchors.forEach(([x0, y0], i) => {
+    const [x1, y1] = anchors[(i + 1) % anchors.length];
+    seg(x0, y0, 0, 0.75, x1, y1, 0, 0.75);
+    const bridges = rnd() < 0.5 ? 2 : 1;
+    for (let b = 0; b < bridges; b++) {
+      const out = Math.atan2(y0 - HUB.y, x0 - HUB.x) + (rnd() - 0.5) * 0.9;
+      const len = 1.4 + rnd() * 1.2;
+      for (let k = 0; k < 6; k++) {
+        const t0 = (k / 6) * len;
+        const t1 = ((k + 1) / 6) * len;
+        seg(
+          x0 + Math.cos(out) * t0, y0 + Math.sin(out) * t0, 0, 0.6 * (1 - k / 6),
+          x0 + Math.cos(out) * t1, y0 + Math.sin(out) * t1, 0, 0.6 * (1 - (k + 1) / 6),
+        );
+      }
+    }
+  });
+
+  const cross = (ax: number, ay: number, bx: number, by: number) => ax * by - ay * bx;
+  const reach = (dx: number, dy: number) => {
+    let best = Infinity;
+    anchors.forEach(([ax, ay], i) => {
+      const [bx, by] = anchors[(i + 1) % anchors.length];
+      const ex = bx - ax;
+      const ey = by - ay;
+      const den = cross(dx, dy, ex, ey);
+      if (Math.abs(den) < 1e-6) return;
+      const qx = ax - HUB.x;
+      const qy = ay - HUB.y;
+      const t = cross(qx, qy, ex, ey) / den;
+      const u = cross(qx, qy, dx, dy) / den;
+      if (t > 0 && u >= 0 && u <= 1) best = Math.min(best, t);
+    });
+    return best;
+  };
+
+  const spokes = Array.from({ length: SPOKES }, (_, i) => {
+    const ang = (i * Math.PI * 2) / SPOKES + (rnd() - 0.5) * 0.12;
+    const dx = Math.cos(ang);
+    const dy = Math.sin(ang);
+    return { dx, dy, len: reach(dx, dy) };
+  });
+  const at = (i: number, f: number): [number, number] => {
+    const s = spokes[i];
+    return [HUB.x + s.dx * s.len * f, HUB.y + s.dy * s.len * f];
+  };
+
+  spokes.forEach((_, i) => {
+    for (let k = 0; k < 14; k++) {
+      const f0 = 0.02 + (k / 14) * 0.98;
+      const f1 = 0.02 + ((k + 1) / 14) * 0.98;
+      const [x0, y0] = at(i, f0);
+      const [x1, y1] = at(i, f1);
+      seg(x0, y0, weight(f0), 0.8, x1, y1, weight(f1), 0.8);
+    }
+  });
+
+  // One sagging strand between two neighbouring spokes.
+  const thread = (i: number, f0: number, f1: number, alpha: number, wet: boolean) => {
+    const j = (i + 1) % SPOKES;
+    const [x0, y0] = at(i, f0);
+    const [x1, y1] = at(j, f1);
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    const mx = (x0 + x1) / 2;
+    const my = (y0 + y1) / 2;
+    const hl = Math.hypot(HUB.x - mx, HUB.y - my) || 1;
+    const ox = ((HUB.x - mx) / hl) * 0.05 * len;
+    const oy = ((HUB.y - my) / hl) * 0.05 * len - 0.14 * len * len;
+    let px = x0;
+    let py = y0;
+    let pw = weight(f0);
+    for (let k = 1; k <= 4; k++) {
+      const t = k / 4;
+      const bend = 4 * t * (1 - t);
+      const x = x0 + (x1 - x0) * t + ox * bend;
+      const y = y0 + (y1 - y0) * t + oy * bend;
+      const w = weight(f0 + (f1 - f0) * t);
+      seg(px, py, pw, alpha, x, y, w, alpha);
+      if (wet && k < 4 && rnd() < 0.12) beads.push({ x, y, w, s: 0.0035 + rnd() ** 3 * 0.011 });
+      px = x;
+      py = y;
+      pw = w;
+    }
+  };
+
+  const dangle = (i: number, f: number) => {
+    const [x, y] = at(i, f);
+    const w = weight(f);
+    const len = 0.12 + rnd() * 0.22;
+    const curl = (rnd() - 0.5) * 0.08;
+    for (let k = 0; k < 5; k++) {
+      const t0 = k / 5;
+      const t1 = (k + 1) / 5;
+      seg(
+        x + Math.sin(t0 * 3) * curl, y - t0 * len, w, 0.5,
+        x + Math.sin(t1 * 3) * curl, y - t1 * len, w, 0.5,
+      );
+    }
+  };
+
+  // Capture spiral, with a torn patch where something broke through.
+  let f = 0.93;
+  let i = 0;
+  while (f > 0.33) {
+    const next = f - 0.04 / SPOKES + (rnd() - 0.5) * 0.006;
+    const torn = i >= 4 && i <= 8 && f > 0.46 && f < 0.78 && rnd() < 0.85;
+    if (torn) {
+      if (rnd() < 0.18) dangle(i, f);
+    } else if (rnd() > 0.025) {
+      thread(i, f, next, 0.55, true);
+    }
+    f = next;
+    i = (i + 1) % SPOKES;
+  }
+
+  // Hub: denser, messier loops.
+  for (const ring of [0.05, 0.075, 0.1, 0.13, 0.16, 0.2, 0.24]) {
+    for (let s = 0; s < SPOKES; s++) {
+      if (rnd() < 0.85) thread(s, ring + (rnd() - 0.5) * 0.02, ring + (rnd() - 0.5) * 0.02, 0.7, false);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("aW", new THREE.Float32BufferAttribute(ws, 1));
+  geo.setAttribute("aA", new THREE.Float32BufferAttribute(as, 1));
+  return { geo, beads };
+}
+
+const silkVert = /* glsl */ `
+  attribute float aW;
+  attribute float aA;
+  uniform float uTime;
+  uniform vec3 uPoke;
+  uniform vec2 uHub;
+  uniform float uGlint;
+  varying float vA;
+  varying float vG;
+  void main() {
+    vec3 p = position;
+    p.z += aW * (0.16 * sin(uTime * 0.6 + p.x * 0.9 + p.y * 0.4) + 0.05 * sin(uTime * 1.3 + p.y * 2.1));
+    vec2 d = p.xy - uPoke.xy;
+    p.z -= uPoke.z * exp(-dot(d, d) / 0.35) * min(1.0, aW * 3.0);
+    vec2 h = p.xy - uHub;
+    float s = sin(atan(h.y, h.x) - uGlint);
+    vG = exp(-s * s / 0.012) * smoothstep(0.0, 0.25, aW);
+    vA = aA;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  }
+`;
+
+const silkFrag = /* glsl */ `
+  uniform vec3 uColor;
+  uniform vec3 uHot;
+  varying float vA;
+  varying float vG;
+  void main() {
+    gl_FragColor = vec4(mix(uColor, uHot, vG), vA * (0.55 + 0.9 * vG));
+    #include <colorspace_fragment>
+  }
+`;
+
+function taperedLeg(points: THREE.Vector3[]) {
+  const curve = new THREE.CatmullRomCurve3(points);
+  const segs = 20;
+  const radial = 6;
+  const geo = new THREE.TubeGeometry(curve, segs, 0.015, radial, false);
+  const p = geo.attributes.position as THREE.BufferAttribute;
+  const c = new THREE.Vector3();
+  const v = new THREE.Vector3();
+  for (let r = 0; r <= segs; r++) {
+    const t = r / segs;
+    curve.getPointAt(t, c);
+    for (let k = 0; k <= radial; k++) {
+      const idx = r * (radial + 1) + k;
+      v.fromBufferAttribute(p, idx).sub(c).multiplyScalar(1 - 0.65 * t).add(c);
+      p.setXYZ(idx, v.x, v.y, v.z);
+    }
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// Orb weavers rest head-down at the hub, so the abdomen points up.
+function Spider() {
+  const legs = useMemo(() => {
+    const spec: [number, number][] = [
+      [155, 0.46],
+      [122, 0.4],
+      [68, 0.26],
+      [32, 0.36],
+    ];
+    const out: THREE.TubeGeometry[] = [];
+    for (const side of [-1, 1]) {
+      spec.forEach(([deg, len], k) => {
+        const th = (deg * Math.PI) / 180;
+        const bend = (k < 2 ? 0.18 : -0.18) * side;
+        const base = new THREE.Vector3(side * 0.045, -0.035 + k * 0.012, 0.03);
+        const dir = (a: number) => new THREE.Vector3(side * Math.sin(a), Math.cos(a), 0);
+        out.push(
+          taperedLeg([
+            base,
+            base.clone().add(dir(th).multiplyScalar(len * 0.38)).setZ(0.14),
+            base.clone().add(dir(th + bend).multiplyScalar(len * 0.72)).setZ(0.08),
+            base.clone().add(dir(th + bend * 1.6).multiplyScalar(len)).setZ(0),
+          ]),
+        );
+      });
+    }
+    return out;
+  }, []);
+
+  const marks = useMemo(() => {
+    const surface = (x: number, y: number) => {
+      const u = x / 0.1045;
+      const v = (y - 0.16) / 0.1375;
+      return 0.05 + 0.088 * Math.sqrt(Math.max(0, 1 - u * u - v * v));
+    };
+    return [
+      [0, 0.245],
+      [-0.034, 0.19],
+      [0.034, 0.19],
+      [-0.045, 0.125],
+      [0.045, 0.125],
+    ].map(([x, y]) => [x, y, surface(x, y)] as const);
+  }, []);
+
+  return (
+    <group>
+      <mesh position={[0, -0.02, 0.03]} scale={[1, 1.15, 0.7]}>
+        <sphereGeometry args={[0.07, 24, 18]} />
+        <meshStandardMaterial color="#141014" roughness={0.35} metalness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.16, 0.05]} scale={[0.95, 1.25, 0.8]}>
+        <sphereGeometry args={[0.11, 32, 24]} />
+        <meshStandardMaterial color="#141014" roughness={0.3} metalness={0.35} />
+      </mesh>
+      {marks.map(([x, y, z], i) => (
+        <mesh key={i} position={[x, y, z]} scale={[0.02, i === 0 ? 0.032 : 0.024, 0.008]}>
+          <sphereGeometry args={[1, 12, 8]} />
+          <meshStandardMaterial color="#E62429" emissive="#E62429" emissiveIntensity={0.55} roughness={0.4} />
+        </mesh>
+      ))}
+      {legs.map((g, i) => (
+        <mesh key={i} geometry={g}>
+          <meshStandardMaterial color="#3a3034" roughness={0.45} metalness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function OrbWeb({ pointer }: { pointer: MutableRefObject<Pointer> }) {
+  const tilt = useRef<THREE.Group>(null);
+  const beadsRef = useRef<THREE.InstancedMesh>(null);
+  const spider = useRef<THREE.Group>(null);
+  const { geo, beads } = useMemo(buildWeb, []);
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uPoke: { value: new THREE.Vector3(0, 0, 0) },
+      uHub: { value: HUB.clone() },
+      uGlint: { value: 0.9 },
+      uColor: { value: new THREE.Color("#F4F1EC") },
+      uHot: { value: new THREE.Color("#FFFFFF") },
+    }),
+    [],
+  );
+
+  const tmp = useMemo(
+    () => ({
+      ray: new THREE.Raycaster(),
+      ndc: new THREE.Vector2(),
+      inv: new THREE.Matrix4(),
+      plane: new THREE.Plane(new THREE.Vector3(0, 0, 1), 0),
+      hit: new THREE.Vector3(),
+      m: new THREE.Matrix4(),
+      twitch: { at: 3, rot: 0 },
+    }),
+    [],
+  );
+
+  useFrame(({ camera, gl, clock }) => {
+    const g = tilt.current;
     if (!g) return;
-    const [px, py] = pointer.current;
-    g.rotation.y += dt * 0.22;
-    g.rotation.x = THREE.MathUtils.lerp(g.rotation.x, py * 0.45, 0.05);
-    g.position.x = THREE.MathUtils.lerp(g.position.x, px * 0.35, 0.05);
-    g.position.y = THREE.MathUtils.lerp(g.position.y, -py * 0.2, 0.05);
+    const t = clock.elapsedTime;
+    const p = pointer.current;
+
+    g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, p.nx * 0.22, 0.04);
+    g.rotation.x = THREE.MathUtils.lerp(g.rotation.x, p.ny * 0.14, 0.04);
+    g.updateMatrixWorld();
+
+    // Pressing into the silk where the cursor is.
+    const poke3 = uniforms.uPoke.value;
+    let target = 0;
+    if (performance.now() - p.at < 1200) {
+      const rect = gl.domElement.getBoundingClientRect();
+      tmp.ndc.set(((p.cx - rect.left) / rect.width) * 2 - 1, -((p.cy - rect.top) / rect.height) * 2 + 1);
+      tmp.ray.setFromCamera(tmp.ndc, camera);
+      tmp.ray.ray.applyMatrix4(tmp.inv.copy(g.matrixWorld).invert());
+      if (tmp.ray.ray.intersectPlane(tmp.plane, tmp.hit) && tmp.hit.distanceTo(new THREE.Vector3(HUB.x, HUB.y, 0)) < 2.3) {
+        poke3.x = THREE.MathUtils.lerp(poke3.x, tmp.hit.x, 0.15);
+        poke3.y = THREE.MathUtils.lerp(poke3.y, tmp.hit.y, 0.15);
+        target = 0.3;
+      }
+    }
+    poke3.z = THREE.MathUtils.lerp(poke3.z, target, 0.05);
+
+    uniforms.uTime.value = t;
+    uniforms.uGlint.value = 0.9 + Math.sin(t * 0.15) * 0.5 + p.nx * 0.6;
+
+    const mesh = beadsRef.current;
+    if (mesh) {
+      beads.forEach((b, i) => {
+        const z = sway(b.x, b.y, b.w, t) + poke(b.x, b.y, b.w, poke3);
+        tmp.m.makeScale(b.s, b.s, b.s).setPosition(b.x, b.y, z);
+        mesh.setMatrixAt(i, tmp.m);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    const s = spider.current;
+    if (s) {
+      s.position.set(HUB.x, HUB.y, sway(HUB.x, HUB.y, 1, t) + poke(HUB.x, HUB.y, 1, poke3) + 0.01);
+      if (t > tmp.twitch.at) {
+        tmp.twitch.rot = (Math.random() - 0.5) * 0.35;
+        tmp.twitch.at = t + 2.5 + Math.random() * 4;
+      }
+      s.rotation.z = THREE.MathUtils.lerp(s.rotation.z, tmp.twitch.rot, 0.12);
+    }
   });
 
   return (
-    <group ref={group}>
-      <lineSegments geometry={geo}>
-        <lineBasicMaterial color="#E62429" transparent opacity={0.9} />
-      </lineSegments>
-      <mesh>
-        <sphereGeometry args={[1.25, 48, 48]} />
-        <meshStandardMaterial color="#120709" metalness={0.75} roughness={0.28} />
-      </mesh>
-      <mesh rotation={[Math.PI / 2.3, 0, 0]}>
-        <torusGeometry args={[2.25, 0.012, 8, 160]} />
-        <meshBasicMaterial color="#1B3A8A" />
-      </mesh>
+    <group position={[-0.12, -0.22, 0]} rotation={[-0.12, 0.42, 0.05]}>
+      <group ref={tilt}>
+        <lineSegments geometry={geo} frustumCulled={false}>
+          <shaderMaterial
+            vertexShader={silkVert}
+            fragmentShader={silkFrag}
+            uniforms={uniforms}
+            transparent
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </lineSegments>
+        <instancedMesh ref={beadsRef} args={[undefined, undefined, beads.length]} frustumCulled={false}>
+          <sphereGeometry args={[1, 10, 8]} />
+          <meshStandardMaterial color="#F4F1EC" emissive="#F4F1EC" emissiveIntensity={0.35} roughness={0.08} />
+        </instancedMesh>
+        <group ref={spider} scale={1.25}>
+          <Spider />
+        </group>
+      </group>
     </group>
   );
 }
 
 export default function WebScene() {
-  const pointer = useRef<[number, number]>([0, 0]);
+  const pointer = useRef<Pointer>({ nx: 0, ny: 0, cx: -1e4, cy: -1e4, at: -1e4 });
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
-      pointer.current = [(e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1];
+      pointer.current = {
+        nx: (e.clientX / window.innerWidth) * 2 - 1,
+        ny: (e.clientY / window.innerHeight) * 2 - 1,
+        cx: e.clientX,
+        cy: e.clientY,
+        at: performance.now(),
+      };
     };
     const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
     if (host.current) io.observe(host.current);
@@ -81,19 +436,19 @@ export default function WebScene() {
   }, []);
 
   return (
-    <div ref={host} className="h-full w-full">
+    <div ref={host} className="h-full w-full [mask-image:radial-gradient(closest-side,#000_72%,transparent)]">
       <Canvas
-        dpr={[1, 1.6]}
-        camera={{ position: [0, 0, 6], fov: 42 }}
+        dpr={[1, 2]}
+        camera={{ position: [0, 0, 6.4], fov: 42 }}
         frameloop={visible ? "always" : "never"}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       >
-        <ambientLight intensity={0.15} />
+        <ambientLight intensity={0.25} />
         <pointLight position={[3, 2, 4]} intensity={60} color="#E62429" />
         <pointLight position={[-4, -2, 2]} intensity={18} color="#1B3A8A" />
-        <Float speed={1.4} rotationIntensity={0.25} floatIntensity={0.6}>
-          <WebSphere pointer={pointer} />
-        </Float>
+        <pointLight position={[0.5, 1.5, 3]} intensity={10} color="#FFFFFF" />
+        <directionalLight position={[-1, 3, -4]} intensity={2} color="#F4F1EC" />
+        <OrbWeb pointer={pointer} />
       </Canvas>
     </div>
   );

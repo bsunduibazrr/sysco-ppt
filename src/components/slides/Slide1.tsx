@@ -44,7 +44,6 @@ export default function Slide1() {
 
       <div className="absolute inset-y-0 right-0 w-full opacity-60 md:w-[62%] md:opacity-100">
         <div className="absolute right-[-12%] top-1/2 aspect-square w-[115%] -translate-y-1/2 md:right-[-6%] md:w-[95%]">
-          <div className="absolute inset-[18%] rounded-full bg-spidey/20 blur-3xl" />
           <HeroVisual />
         </div>
       </div>
