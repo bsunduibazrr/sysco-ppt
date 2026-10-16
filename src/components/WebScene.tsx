@@ -183,6 +183,39 @@ function buildWeb() {
   return { geo, beads };
 }
 
+const silkVert = /* glsl */ `
+  attribute float aW;
+  attribute float aA;
+  uniform float uTime;
+  uniform vec3 uPoke;
+  uniform vec2 uHub;
+  uniform float uGlint;
+  varying float vA;
+  varying float vG;
+  void main() {
+    vec3 p = position;
+    p.z += aW * (0.16 * sin(uTime * 0.6 + p.x * 0.9 + p.y * 0.4) + 0.05 * sin(uTime * 1.3 + p.y * 2.1));
+    vec2 d = p.xy - uPoke.xy;
+    p.z -= uPoke.z * exp(-dot(d, d) / 0.35) * min(1.0, aW * 3.0);
+    vec2 h = p.xy - uHub;
+    float s = sin(atan(h.y, h.x) - uGlint);
+    vG = exp(-s * s / 0.012) * smoothstep(0.0, 0.25, aW);
+    vA = aA;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  }
+`;
+
+const silkFrag = /* glsl */ `
+  uniform vec3 uColor;
+  uniform vec3 uHot;
+  varying float vA;
+  varying float vG;
+  void main() {
+    gl_FragColor = vec4(mix(uColor, uHot, vG), vA * (0.55 + 0.9 * vG));
+    #include <colorspace_fragment>
+  }
+`;
+
 function webGeometry() {
   const pts: number[] = [];
   const r = 1.75;
