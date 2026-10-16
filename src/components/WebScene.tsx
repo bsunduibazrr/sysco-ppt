@@ -5,6 +5,12 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Float } from "@react-three/drei";
 import * as THREE from "three";
 
+type Pointer = { nx: number; ny: number; cx: number; cy: number; at: number };
+type Bead = { x: number; y: number; w: number; s: number };
+
+const HUB = new THREE.Vector2(0.12, 0.3);
+const SPOKES = 28;
+
 function webGeometry() {
   const pts: number[] = [];
   const r = 1.75;
