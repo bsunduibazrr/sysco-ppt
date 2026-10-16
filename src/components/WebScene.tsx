@@ -306,6 +306,112 @@ function Spider() {
   );
 }
 
+function OrbWeb({ pointer }: { pointer: MutableRefObject<Pointer> }) {
+  const tilt = useRef<THREE.Group>(null);
+  const beadsRef = useRef<THREE.InstancedMesh>(null);
+  const spider = useRef<THREE.Group>(null);
+  const { geo, beads } = useMemo(buildWeb, []);
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uPoke: { value: new THREE.Vector3(0, 0, 0) },
+      uHub: { value: HUB.clone() },
+      uGlint: { value: 0.9 },
+      uColor: { value: new THREE.Color("#F4F1EC") },
+      uHot: { value: new THREE.Color("#FFFFFF") },
+    }),
+    [],
+  );
+
+  const tmp = useMemo(
+    () => ({
+      ray: new THREE.Raycaster(),
+      ndc: new THREE.Vector2(),
+      inv: new THREE.Matrix4(),
+      plane: new THREE.Plane(new THREE.Vector3(0, 0, 1), 0),
+      hit: new THREE.Vector3(),
+      m: new THREE.Matrix4(),
+      twitch: { at: 3, rot: 0 },
+    }),
+    [],
+  );
+
+  useFrame(({ camera, gl, clock }) => {
+    const g = tilt.current;
+    if (!g) return;
+    const t = clock.elapsedTime;
+    const p = pointer.current;
+
+    g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, p.nx * 0.22, 0.04);
+    g.rotation.x = THREE.MathUtils.lerp(g.rotation.x, p.ny * 0.14, 0.04);
+    g.updateMatrixWorld();
+
+    // Pressing into the silk where the cursor is.
+    const poke3 = uniforms.uPoke.value;
+    let target = 0;
+    if (performance.now() - p.at < 1200) {
+      const rect = gl.domElement.getBoundingClientRect();
+      tmp.ndc.set(((p.cx - rect.left) / rect.width) * 2 - 1, -((p.cy - rect.top) / rect.height) * 2 + 1);
+      tmp.ray.setFromCamera(tmp.ndc, camera);
+      tmp.ray.ray.applyMatrix4(tmp.inv.copy(g.matrixWorld).invert());
+      if (tmp.ray.ray.intersectPlane(tmp.plane, tmp.hit) && tmp.hit.distanceTo(new THREE.Vector3(HUB.x, HUB.y, 0)) < 2.3) {
+        poke3.x = THREE.MathUtils.lerp(poke3.x, tmp.hit.x, 0.15);
+        poke3.y = THREE.MathUtils.lerp(poke3.y, tmp.hit.y, 0.15);
+        target = 0.3;
+      }
+    }
+    poke3.z = THREE.MathUtils.lerp(poke3.z, target, 0.05);
+
+    uniforms.uTime.value = t;
+    uniforms.uGlint.value = 0.9 + Math.sin(t * 0.15) * 0.5 + p.nx * 0.6;
+
+    const mesh = beadsRef.current;
+    if (mesh) {
+      beads.forEach((b, i) => {
+        const z = sway(b.x, b.y, b.w, t) + poke(b.x, b.y, b.w, poke3);
+        tmp.m.makeScale(b.s, b.s, b.s).setPosition(b.x, b.y, z);
+        mesh.setMatrixAt(i, tmp.m);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    const s = spider.current;
+    if (s) {
+      s.position.set(HUB.x, HUB.y, sway(HUB.x, HUB.y, 1, t) + poke(HUB.x, HUB.y, 1, poke3) + 0.01);
+      if (t > tmp.twitch.at) {
+        tmp.twitch.rot = (Math.random() - 0.5) * 0.35;
+        tmp.twitch.at = t + 2.5 + Math.random() * 4;
+      }
+      s.rotation.z = THREE.MathUtils.lerp(s.rotation.z, tmp.twitch.rot, 0.12);
+    }
+  });
+
+  return (
+    <group position={[-0.12, -0.22, 0]} rotation={[-0.12, 0.42, 0.05]}>
+      <group ref={tilt}>
+        <lineSegments geometry={geo} frustumCulled={false}>
+          <shaderMaterial
+            vertexShader={silkVert}
+            fragmentShader={silkFrag}
+            uniforms={uniforms}
+            transparent
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </lineSegments>
+        <instancedMesh ref={beadsRef} args={[undefined, undefined, beads.length]} frustumCulled={false}>
+          <sphereGeometry args={[1, 10, 8]} />
+          <meshStandardMaterial color="#F4F1EC" emissive="#F4F1EC" emissiveIntensity={0.35} roughness={0.08} />
+        </instancedMesh>
+        <group ref={spider} scale={1.25}>
+          <Spider />
+        </group>
+      </group>
+    </group>
+  );
+}
+
 function webGeometry() {
   const pts: number[] = [];
   const r = 1.75;
