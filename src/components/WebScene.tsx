@@ -237,6 +237,75 @@ function taperedLeg(points: THREE.Vector3[]) {
   return geo;
 }
 
+// Orb weavers rest head-down at the hub, so the abdomen points up.
+function Spider() {
+  const legs = useMemo(() => {
+    const spec: [number, number][] = [
+      [155, 0.46],
+      [122, 0.4],
+      [68, 0.26],
+      [32, 0.36],
+    ];
+    const out: THREE.TubeGeometry[] = [];
+    for (const side of [-1, 1]) {
+      spec.forEach(([deg, len], k) => {
+        const th = (deg * Math.PI) / 180;
+        const bend = (k < 2 ? 0.18 : -0.18) * side;
+        const base = new THREE.Vector3(side * 0.045, -0.035 + k * 0.012, 0.03);
+        const dir = (a: number) => new THREE.Vector3(side * Math.sin(a), Math.cos(a), 0);
+        out.push(
+          taperedLeg([
+            base,
+            base.clone().add(dir(th).multiplyScalar(len * 0.38)).setZ(0.14),
+            base.clone().add(dir(th + bend).multiplyScalar(len * 0.72)).setZ(0.08),
+            base.clone().add(dir(th + bend * 1.6).multiplyScalar(len)).setZ(0),
+          ]),
+        );
+      });
+    }
+    return out;
+  }, []);
+
+  const marks = useMemo(() => {
+    const surface = (x: number, y: number) => {
+      const u = x / 0.1045;
+      const v = (y - 0.16) / 0.1375;
+      return 0.05 + 0.088 * Math.sqrt(Math.max(0, 1 - u * u - v * v));
+    };
+    return [
+      [0, 0.245],
+      [-0.034, 0.19],
+      [0.034, 0.19],
+      [-0.045, 0.125],
+      [0.045, 0.125],
+    ].map(([x, y]) => [x, y, surface(x, y)] as const);
+  }, []);
+
+  return (
+    <group>
+      <mesh position={[0, -0.02, 0.03]} scale={[1, 1.15, 0.7]}>
+        <sphereGeometry args={[0.07, 24, 18]} />
+        <meshStandardMaterial color="#141014" roughness={0.35} metalness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.16, 0.05]} scale={[0.95, 1.25, 0.8]}>
+        <sphereGeometry args={[0.11, 32, 24]} />
+        <meshStandardMaterial color="#141014" roughness={0.3} metalness={0.35} />
+      </mesh>
+      {marks.map(([x, y, z], i) => (
+        <mesh key={i} position={[x, y, z]} scale={[0.02, i === 0 ? 0.032 : 0.024, 0.008]}>
+          <sphereGeometry args={[1, 12, 8]} />
+          <meshStandardMaterial color="#E62429" emissive="#E62429" emissiveIntensity={0.55} roughness={0.4} />
+        </mesh>
+      ))}
+      {legs.map((g, i) => (
+        <mesh key={i} geometry={g}>
+          <meshStandardMaterial color="#3a3034" roughness={0.45} metalness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function webGeometry() {
   const pts: number[] = [];
   const r = 1.75;
