@@ -22,6 +22,19 @@ function mulberry32(seed: number) {
   };
 }
 
+// Kept in sync with the vertex shader below.
+function sway(x: number, y: number, w: number, t: number) {
+  return w * (0.16 * Math.sin(t * 0.6 + x * 0.9 + y * 0.4) + 0.05 * Math.sin(t * 1.3 + y * 2.1));
+}
+
+function poke(x: number, y: number, w: number, p: THREE.Vector3) {
+  const dx = x - p.x;
+  const dy = y - p.y;
+  return -p.z * Math.exp(-(dx * dx + dy * dy) / 0.35) * Math.min(1, w * 3);
+}
+
+const weight = (f: number) => 1 - f * f;
+
 function webGeometry() {
   const pts: number[] = [];
   const r = 1.75;
