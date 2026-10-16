@@ -35,6 +35,154 @@ function poke(x: number, y: number, w: number, p: THREE.Vector3) {
 
 const weight = (f: number) => 1 - f * f;
 
+function buildWeb() {
+  const rnd = mulberry32(11);
+  const pos: number[] = [];
+  const ws: number[] = [];
+  const as: number[] = [];
+  const beads: Bead[] = [];
+  const seg = (x0: number, y0: number, w0: number, a0: number, x1: number, y1: number, w1: number, a1: number) => {
+    pos.push(x0, y0, 0, x1, y1, 0);
+    ws.push(w0, w1);
+    as.push(a0, a1);
+  };
+
+  // Frame: an uneven polygon, roomier below the hub like a real orb web.
+  const anchors: [number, number][] = [];
+  for (let i = 0; i < 6; i++) {
+    const ang = 0.35 + (i * Math.PI * 2) / 6 + (rnd() - 0.5) * 0.45;
+    const r = (1.75 + rnd() * 0.4) * (Math.sin(ang) < 0 ? 1.12 : 0.9);
+    anchors.push([HUB.x + Math.cos(ang) * r, HUB.y + Math.sin(ang) * r]);
+  }
+  anchors.forEach(([x0, y0], i) => {
+    const [x1, y1] = anchors[(i + 1) % anchors.length];
+    seg(x0, y0, 0, 0.75, x1, y1, 0, 0.75);
+    const bridges = rnd() < 0.5 ? 2 : 1;
+    for (let b = 0; b < bridges; b++) {
+      const out = Math.atan2(y0 - HUB.y, x0 - HUB.x) + (rnd() - 0.5) * 0.9;
+      const len = 1.4 + rnd() * 1.2;
+      for (let k = 0; k < 6; k++) {
+        const t0 = (k / 6) * len;
+        const t1 = ((k + 1) / 6) * len;
+        seg(
+          x0 + Math.cos(out) * t0, y0 + Math.sin(out) * t0, 0, 0.6 * (1 - k / 6),
+          x0 + Math.cos(out) * t1, y0 + Math.sin(out) * t1, 0, 0.6 * (1 - (k + 1) / 6),
+        );
+      }
+    }
+  });
+
+  const cross = (ax: number, ay: number, bx: number, by: number) => ax * by - ay * bx;
+  const reach = (dx: number, dy: number) => {
+    let best = Infinity;
+    anchors.forEach(([ax, ay], i) => {
+      const [bx, by] = anchors[(i + 1) % anchors.length];
+      const ex = bx - ax;
+      const ey = by - ay;
+      const den = cross(dx, dy, ex, ey);
+      if (Math.abs(den) < 1e-6) return;
+      const qx = ax - HUB.x;
+      const qy = ay - HUB.y;
+      const t = cross(qx, qy, ex, ey) / den;
+      const u = cross(qx, qy, dx, dy) / den;
+      if (t > 0 && u >= 0 && u <= 1) best = Math.min(best, t);
+    });
+    return best;
+  };
+
+  const spokes = Array.from({ length: SPOKES }, (_, i) => {
+    const ang = (i * Math.PI * 2) / SPOKES + (rnd() - 0.5) * 0.12;
+    const dx = Math.cos(ang);
+    const dy = Math.sin(ang);
+    return { dx, dy, len: reach(dx, dy) };
+  });
+  const at = (i: number, f: number): [number, number] => {
+    const s = spokes[i];
+    return [HUB.x + s.dx * s.len * f, HUB.y + s.dy * s.len * f];
+  };
+
+  spokes.forEach((_, i) => {
+    for (let k = 0; k < 14; k++) {
+      const f0 = 0.02 + (k / 14) * 0.98;
+      const f1 = 0.02 + ((k + 1) / 14) * 0.98;
+      const [x0, y0] = at(i, f0);
+      const [x1, y1] = at(i, f1);
+      seg(x0, y0, weight(f0), 0.8, x1, y1, weight(f1), 0.8);
+    }
+  });
+
+  // One sagging strand between two neighbouring spokes.
+  const thread = (i: number, f0: number, f1: number, alpha: number, wet: boolean) => {
+    const j = (i + 1) % SPOKES;
+    const [x0, y0] = at(i, f0);
+    const [x1, y1] = at(j, f1);
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    const mx = (x0 + x1) / 2;
+    const my = (y0 + y1) / 2;
+    const hl = Math.hypot(HUB.x - mx, HUB.y - my) || 1;
+    const ox = ((HUB.x - mx) / hl) * 0.05 * len;
+    const oy = ((HUB.y - my) / hl) * 0.05 * len - 0.14 * len * len;
+    let px = x0;
+    let py = y0;
+    let pw = weight(f0);
+    for (let k = 1; k <= 4; k++) {
+      const t = k / 4;
+      const bend = 4 * t * (1 - t);
+      const x = x0 + (x1 - x0) * t + ox * bend;
+      const y = y0 + (y1 - y0) * t + oy * bend;
+      const w = weight(f0 + (f1 - f0) * t);
+      seg(px, py, pw, alpha, x, y, w, alpha);
+      if (wet && k < 4 && rnd() < 0.12) beads.push({ x, y, w, s: 0.0035 + rnd() ** 3 * 0.011 });
+      px = x;
+      py = y;
+      pw = w;
+    }
+  };
+
+  const dangle = (i: number, f: number) => {
+    const [x, y] = at(i, f);
+    const w = weight(f);
+    const len = 0.12 + rnd() * 0.22;
+    const curl = (rnd() - 0.5) * 0.08;
+    for (let k = 0; k < 5; k++) {
+      const t0 = k / 5;
+      const t1 = (k + 1) / 5;
+      seg(
+        x + Math.sin(t0 * 3) * curl, y - t0 * len, w, 0.5,
+        x + Math.sin(t1 * 3) * curl, y - t1 * len, w, 0.5,
+      );
+    }
+  };
+
+  // Capture spiral, with a torn patch where something broke through.
+  let f = 0.93;
+  let i = 0;
+  while (f > 0.33) {
+    const next = f - 0.04 / SPOKES + (rnd() - 0.5) * 0.006;
+    const torn = i >= 4 && i <= 8 && f > 0.46 && f < 0.78 && rnd() < 0.85;
+    if (torn) {
+      if (rnd() < 0.18) dangle(i, f);
+    } else if (rnd() > 0.025) {
+      thread(i, f, next, 0.55, true);
+    }
+    f = next;
+    i = (i + 1) % SPOKES;
+  }
+
+  // Hub: denser, messier loops.
+  for (const ring of [0.05, 0.075, 0.1, 0.13, 0.16, 0.2, 0.24]) {
+    for (let s = 0; s < SPOKES; s++) {
+      if (rnd() < 0.85) thread(s, ring + (rnd() - 0.5) * 0.02, ring + (rnd() - 0.5) * 0.02, 0.7, false);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("aW", new THREE.Float32BufferAttribute(ws, 1));
+  geo.setAttribute("aA", new THREE.Float32BufferAttribute(as, 1));
+  return { geo, beads };
+}
+
 function webGeometry() {
   const pts: number[] = [];
   const r = 1.75;
