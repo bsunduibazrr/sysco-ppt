@@ -216,6 +216,27 @@ const silkFrag = /* glsl */ `
   }
 `;
 
+function taperedLeg(points: THREE.Vector3[]) {
+  const curve = new THREE.CatmullRomCurve3(points);
+  const segs = 20;
+  const radial = 6;
+  const geo = new THREE.TubeGeometry(curve, segs, 0.015, radial, false);
+  const p = geo.attributes.position as THREE.BufferAttribute;
+  const c = new THREE.Vector3();
+  const v = new THREE.Vector3();
+  for (let r = 0; r <= segs; r++) {
+    const t = r / segs;
+    curve.getPointAt(t, c);
+    for (let k = 0; k <= radial; k++) {
+      const idx = r * (radial + 1) + k;
+      v.fromBufferAttribute(p, idx).sub(c).multiplyScalar(1 - 0.65 * t).add(c);
+      p.setXYZ(idx, v.x, v.y, v.z);
+    }
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function webGeometry() {
   const pts: number[] = [];
   const r = 1.75;
